@@ -1,0 +1,15 @@
+{
+    "blacklist": [
+        "MX"
+    ],
+    "whitelist": {
+        "system.loadavg_1*": {
+            "CSV":{
+            }
+        },
+        "bad.*":{
+            "CSV": {
+            }
+        }
+    }
+}
