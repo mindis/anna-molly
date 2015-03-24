@@ -13,7 +13,7 @@ from lib.modules import models
 
 app.add_option("--incoming_connector", default="CarbonTcpSpout",
                help="Select the incoming metric connection interface")
-app.add_option("--metricstore_connector", default="FileSink",
+app.add_option("--metricstore_connector", default="RedisSink",
                help="Select the metricstore connection interface")
 app.add_option("--host", default="127.0.0.1", help="Connection Host")
 app.add_option("--port", default=2003, help="Connection Port", type="int")
@@ -44,29 +44,34 @@ def router(builder, metrics):
         # This is overkill. Since we assume that there will be only one match
         match_models = find(lambda x: x.match(metric.name), builder.keys())
         for m in builder[match_models]:
+            # TO DO: is metric not always already a timeseriestuple? 
             yield bijection.inject(metric, m)
 
 
 def main(args, options):
-    ROUTER_CONFIG = config.load(options.config)
+    CONFIG = config.load(options.config)
+    ROUTER_CONFIG = CONFIG['ROUTER']
     builder = match_builder(ROUTER_CONFIG['whitelist'])
     blacklist = [re.compile(x) for x in ROUTER_CONFIG['blacklist']]
     try:
-        listener_config = {'spout':{'carbon':{'host': "127.0.0.1", 'port': 2004, 'model': "pickle"}}}
+        listener_config = CONFIG['SPOUT'][options.incoming_connector]
         listener = getattr(spout, options.incoming_connector)(listener_config)
     except AttributeError:
         log.error("Could not find connector interface %s" %(options.incoming_connector))
 
     try:
-        writer = getattr(sink, options.metricstore_connector)({"file": {"path": "/opt/anna-molly/test_file.tsv"}})
+        writer_config = CONFIG['SINK'][options.metricstore_connector]
+        writer = getattr(sink, options.metricstore_connector)(writer_config)
     except AttributeError:
         log.error("Could not find metricstore connector interface %s" %(options.metricstore_connector))
 
     metrics = listener.stream()
     metrics = reject(blacklist, metrics)
     metrics = router(builder, metrics)
-    
     writer.write(metrics)
     writer.close()
 
 app.main()
+
+
+

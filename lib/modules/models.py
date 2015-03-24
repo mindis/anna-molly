@@ -7,6 +7,7 @@ class TimeSeriesTuple(namedtuple('TimeSeriesTuple', 'name timestamp value')):
     def transform(self):
         return self
 
+
 class TSV(object):
     def __init__(self, value):
         self.name = value.name
@@ -17,8 +18,23 @@ class TSV(object):
     def transform(self):
         return TimeSeriesTuple(self.name, self.timestamp, self.value)
 
+
 class CSV(TSV):
     def __str__(self):
         return "%s,%d,%f" % (self.name, self.timestamp, self.value)
 
 
+class RedisLastValue(object):
+    def __init__(self, value, TTL):
+        self.ttl = TTL
+        self.value = float(value.value)
+        self.timestamp = value.timestamp
+        self.name = self.build_name(value)
+    def __str__(self):
+        return "%s,%d,%f with TTL: %d" % (self.name, self.timestamp, self.value, self.ttl)
+    def build_name(self, value):
+        return value.name
+
+class RedisTimestamped(RedisLastValue):
+    def build_name(self, value):
+        return '%s:%s' % (value.name, value.timestamp)
