@@ -11,12 +11,12 @@ class Spout(Interface):
 
 class CarbonTcpSpout(Spout):
     def __init__(self, config):
-        self.host = config['host']
-        self.port = config['port']
-        self.model = config['model']
+        self.host = config['spout']['carbon']['host']
+        self.port = config['spout']['carbon']['port']
+        self.model = config['spout']['carbon']['model']
         self.connection, _ = self.connect().accept()
         self.receive = {
-            'pickle': self.receive_pickle,  
+            'pickle': self.receive_pickle,
             'text': self.receive_text
         }
     def _read_all_pickle(self, length):
@@ -36,6 +36,7 @@ class CarbonTcpSpout(Spout):
             if "\n" in data:
                 return data
         return data
+
 
     def receive_pickle(self):
         length = Struct('!I').unpack(self._read_all_pickle(4))
