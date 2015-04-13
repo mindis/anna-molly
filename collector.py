@@ -17,7 +17,7 @@ app.add_option("--metricstore_connector", default="FileSink",
                help="Select the metricstore connection interface")
 app.add_option("--host", default="127.0.0.1", help="Connection Host")
 app.add_option("--port", default=2003, help="Connection Port", type="int")
-app.add_option("--config", help="Collector Config")
+app.add_option("--config", default="config/collector.json", help="Collector Config")
 
 
 def find(f, seq):
