@@ -1,7 +1,10 @@
 import re
+import sys
 from functools import partial
 
 from twitter.common import app, log
+
+sys.path.append("../")
 
 from lib.modules import spout
 from lib.modules import sink
