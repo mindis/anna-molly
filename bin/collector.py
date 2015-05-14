@@ -12,8 +12,6 @@ from lib.modules import config
 from lib.modules import bijection
 from lib.modules import models
 
-
-
 app.add_option("--incoming_connector", default="CarbonTcpSpout",
                help="Select the incoming metric connection interface")
 app.add_option("--metricstore_connector", default="FileSink",
@@ -68,7 +66,7 @@ def main(args, options):
     metrics = listener.stream()
     metrics = reject(blacklist, metrics)
     metrics = router(builder, metrics)
-    
+
     writer.write(metrics)
     writer.close()
 

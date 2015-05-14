@@ -1,43 +1,36 @@
 {
-
-    "SPOUT": {
-        "CarbonTcpSpout": {
-            "host": "127.0.0.1", 
-            "port": 2004, 
-            "model": "pickle"
+  "spout": {
+    "CarbonTcpSpout": {
+      "host": "127.0.0.1",
+      "port": 2004,
+      "model": "pickle"
+    }
+  },
+  "router": {
+    "blacklist": [
+      "MX",
+      "osys.*"
+    ],
+    "whitelist": {
+      "system.loadavg_1*": {
+        "AerospikeTimeStamped": {
+          "defaults": {
+            "ttl": 333,
+            "namespace": "test",
+            "set": "mySet"
+          }
         }
+      }
+    }
+  },
+  "SINK": {
+    "FileSink": {
+      "path": "/opt/anna-molly/test_file.tsv"
     },
-
-    "ROUTER": {
-        "blacklist": [
-            "MX",
-            "bad.*"
-        ],
-        "whitelist": {
-            "system.loadavg_1*": {
-                "RedisLastValue": {
-                    "TTL": 333
-                },
-                "RedisTimestamped": {
-                    "TTL": 100
-                }
-            },
-            "bad.*":{
-                "CSV": {
-                }
-            }
-        }
-    },
-
-    "SINK": {
-        "FileSink": {
-            "path": "/opt/anna-molly/test_file.tsv"
-        },
-        "RedisSink": {
-            "host": "127.0.0.1",
-            "port": 6379,
-            "pipeline_size": 10
-        }
-    } 
-
+    "RedisSink": {
+      "host": "127.0.0.1",
+      "port": 6379,
+      "pipeline_size": 10
+    }
+  }
 }

@@ -33,7 +33,7 @@ fail 'No service name defined' if service_name.empty?
 
 # variables - virtual box specific
 VB_MEMORY             = 1024
-VB_CPUS               = 1
+VB_CPUS               = 4
 
 # set constants
 hostname = "anna-molly"

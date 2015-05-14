@@ -1,11 +1,16 @@
 import socket
-from struct import Struct
+import pyuv
+import signal
+import struct
+
+
 from twitter.common.lang import Interface
 from helper import SafeUnpickler
 from models import TimeSeriesTuple
 
 
 class Spout(Interface):
+
     def __init__(self):
         pass
 
@@ -17,14 +22,13 @@ class Spout(Interface):
 
 
 class CarbonSyncTcpSpout(Spout):
+
     def __init__(self, config):
         self.host = config['spout']['carbon']['host']
         self.port = config['spout']['carbon']['port']
         self.model = config['spout']['carbon']['model']
         self.connection, _ = self.connect().accept()
-        self.receive = {
-            'pickle': self.receive_pickle
-        }
+        self.receive = self.receive_pickle
 
     def read_all_pickle(self, length):
         data = ''
@@ -35,7 +39,7 @@ class CarbonSyncTcpSpout(Spout):
         return data
 
     def receive_pickle(self):
-        length = Struct('!I').unpack(self.read_all_pickle(4))
+        length = struct.unpack('!L', self.read_all_pickle(4))
         data = self.read_all_pickle(length[0])
         return SafeUnpickler.transform(data)
 
@@ -54,16 +58,15 @@ class CarbonSyncTcpSpout(Spout):
                                       datapoint[1][1])
 
 
-
 class CarbonAsyncTcpSpout(Spout):
-    def __init__(self, config, callback):
+
+    def __init__(self, config, callback, protocol="Text"):
         self.host = config['spout']['carbon']['host']
         self.port = config['spout']['carbon']['port']
         self.callback = callback
         self.clients = []
         self.loop = pyuv.Loop.default_loop()
         self.server = pyuv.TCP(self.loop)
-
         self.signal_handler = pyuv.Signal(self.loop)
 
     def signal_cb(self, handle, signum):
@@ -77,16 +80,35 @@ class CarbonAsyncTcpSpout(Spout):
         self.clients.append(client)
         client.start_read(self.stream)
 
-    def stream(self, client, data, error):
+    def unpickle(self, infile):
+        try:
+            bunch = SafeUnpickler.loads(infile)
+            yield bunch
+        except Exception as _e:
+            print str(_e)
+
+    def remove_client(self, client):
+        client.close()
+        self.clients.remove(client)
+        return
+
+    def stream_pickle(self, client, data, error):
         if data is None:
-            client.close()
-            self.clients.remove(client)
-            return
+            return self.remove_client(client)
+        size = struct.unpack('!L', data[4:])
+        for datapoint in self.unpickle(data[4:]):
+            self.callback(
+                TimeSeriesTuple(datapoint[0], datapoint[1], datapoint[2]))
+
+    def stream_text(self, client, data, error):
+        if data is None:
+            return self.remove_client(client)
         data = data.rstrip()
         data = data.split("\n")
         for datapoint in data:
             datapoint = datapoint.split(" ")
-            self.callback(TimeSeriesTuple(datapoint[0], datapoint[1], datapoint[2]))
+            self.callback(
+                TimeSeriesTuple(datapoint[0], datapoint[1], datapoint[2]))
 
     def connect(self):
         try:
