@@ -1,7 +1,7 @@
 #!/usr/bin/env make
 
 HOME = ./
-NAME = tm-cpc-engine
+NAME = anna-molly
 TEST = ./test/
 
 .PHONY:clean test docs

@@ -1,5 +1,7 @@
 import re
+
 from boltons.dictutils import OrderedMultiDict
+from twitter.common import log
 
 
 class EventEmitter2(object):
@@ -22,6 +24,8 @@ class EventEmitter2(object):
         for pattern, listener in self.events.iteritems(multi=True):
             if pattern.match(event):
                 if not listener["calls_left"]:
+                    log.debug("Removing Listener: %s on Pattern: %s") % (
+                        listener, pattern)
                     self.remove_listener(pattern, listener)
                 listener["calls"] += 1
                 listener["calls_left"] -= 1
