@@ -23,6 +23,9 @@ class Sink(Interface):
     def close(self):
         pass
 
+    def read(self):
+        pass
+
 
 class RedisSink(Sink):
 
@@ -64,3 +67,6 @@ class RedisClusterSink(RedisSink):
         self.redis_cluster = rediscluster.RedisCluster(startup_nodes=startup_nodes,
                                                        decode_responses=True)
         self.redis_pipeline = self.redis_cluster.pipeline()
+
+
+# TODO GraphiteSink

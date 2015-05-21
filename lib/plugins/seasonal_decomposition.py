@@ -1,3 +1,4 @@
+# TODO: Fix Sink reads
 """
 Seasonal Decomposition Class
 """
