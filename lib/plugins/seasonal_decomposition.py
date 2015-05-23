@@ -3,11 +3,11 @@ Seasonal Decomposition Class
 """
 import json
 import rpy2.robjects as robjects
+from tdigest import TDigest
 
 from numpy import median, asarray
 
 from lib.modules.base_task import BaseTask
-from lib.plugins.tdigest import TDigest
 from lib.modules.helper import find_step_size, insert_missing_datapoints
 
 
@@ -25,18 +25,6 @@ class SeasonalDecomposition(BaseTask):
             'tukey': self._eval_tukey,
             'quantile': self._eval_quantile
         }
-
-    # def _build_tdigest(self, error):
-    #     error_history_length = self.params['error_history_length']
-    #     td = TDigest()
-    #     try:
-    #         metric_data = self.sink.read(metric, error_history_length)
-    #         error_data = [val[1] for val in metric_data if val[1]]
-    #         [td.add(error, 1.0) for error in error_data]
-    #         td.compress()
-    #     except:
-    #         pass
-    #     return td
 
     def _eval_quantile(self, error):
         state = {}

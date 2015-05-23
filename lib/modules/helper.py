@@ -3,27 +3,26 @@ import cPickle as pickle
 import sys
 
 from cStringIO import StringIO
-from time import time
 
 from lib.modules.models import TimeSeriesTuple
 
-#TODO
-#tests
 
 class SafeUnpickler(object):
     PICKLE_SAFE = {
-        'copy_reg' : set(['_reconstructor']),
-        '__builtin__' : set(['object']),
+        'copy_reg': set(['_reconstructor']),
+        '__builtin__': set(['object']),
     }
 
     @classmethod
     def find_class(cls, module, name):
-        if not module in cls.PICKLE_SAFE:
-            raise pickle.UnpicklingError('Attempting to unpickle unsafe module %s' % module)
+        if module not in cls.PICKLE_SAFE:
+            raise pickle.UnpicklingError(
+                'Attempting to unpickle unsafe module %s' % module)
         __import__(module)
         mod = sys.modules[module]
-        if not name in cls.PICKLE_SAFE[module]:
-            raise pickle.UnpicklingError('Attempting to unpickle unsafe class %s' % name)
+        if module not in cls.PICKLE_SAFE[module]:
+            raise pickle.UnpicklingError(
+                'Attempting to unpickle unsafe class %s' % name)
         return getattr(mod, name)
 
     @classmethod
@@ -64,7 +63,8 @@ def insert_missing_datapoints(timeseries, default, step_size):
     filled_timeseries = []
     for datapoint in timeseries:
         while datapoint.timestamp - last > step_size:
-            filled_timeseries.append(TimeSeriesTuple(metric, last + step_size, default))
+            filled_timeseries.append(
+                TimeSeriesTuple(metric, last + step_size, default))
             last += step_size
         filled_timeseries.append(datapoint)
         last = datapoint.timestamp

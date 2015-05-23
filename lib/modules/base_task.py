@@ -1,13 +1,11 @@
-"""
-Base Task
-"""
-
 import sink
 
 
 class BaseTask(object):
+
     """
     """
+
     def __init__(self, config, resource={}):
         self.config = config
         self.resource = resource

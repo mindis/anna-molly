@@ -19,11 +19,9 @@ def Echo():
 class TestEventEmitter2(unittest.TestCase):
     def setUp(self):
         self.ee = EventEmitter2()
-        pass
 
     def tearDown(self):
         self.ee = None
-        pass
 
     def test_ee2_properties(self):
         self.ee.should.have.property('events')

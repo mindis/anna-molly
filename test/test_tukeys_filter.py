@@ -6,7 +6,6 @@ import unittest
 sys.path.append("../")
 
 from mock import Mock
-from struct import pack
 from sure import expect
 
 from fixtures.config import CONFIG

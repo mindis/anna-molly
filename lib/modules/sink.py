@@ -1,8 +1,10 @@
 import redis
+import socket
 import cPickle as pickle
 from cStringIO import StringIO
 
 from twitter.common.lang import Interface
+from twitter.common import log
 
 
 class Sink(Interface):
@@ -33,9 +35,12 @@ class RedisSink(Sink):
         self.connection = self.connect()
 
     def connect(self):
-        redis_conn = redis.StrictRedis(host=self.host, port=self.port)
-        self.redis_pipeline = redis_conn.pipeline()
-        return redis_conn
+        try:
+            redis_conn = redis.StrictRedis(host=self.host, port=self.port)
+            self.redis_pipeline = redis_conn.pipeline()
+            return redis_conn
+        except Exception as _e:
+            log.error("RedisSink: ConnectionError\n %s %s" % (config, str(_e)))
 
     def write(self, datapoints):
         for datapoint in datapoints:
@@ -57,4 +62,25 @@ class RedisSink(Sink):
             yield pickle.Unpickler(StringIO(self.connection.get(item))).load()
 
 
-# TODO GraphiteSink
+class GraphiteSink(Sink):
+
+    def __init__(self, config):
+        self.host = config['host']
+        self.port = config['port']
+        self.prefix = config['prefix']
+        self.connection = self.connect()
+
+    def connect(self):
+        try:
+            sock = socket.socket()
+            sock.connect((self.host, self.port))
+            return sock
+        except Exception as _e:
+            log.error("Cannot connect to Graphite Sink with config:%s\n%s" %(config, str(_e)))
+
+    def write(self, datapoints):
+        for datapoint in datapoints:
+            try:
+                self.connection.sendall("%s.%f %s %d\n" % (datapoint.name, datapoint.value, data.timestamp))
+            except Exception as _e:
+                log.error("GraphiteSink: WriteError\n %s \n%s" % (datapoint, str(_e)))
