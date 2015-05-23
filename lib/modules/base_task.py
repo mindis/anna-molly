@@ -2,19 +2,18 @@
 Base Task
 """
 
-import sink
+import sink as sink
 
 
 class BaseTask(object):
     """
     """
-    def __init__(self, config, resource={}):
+    def __init__(self, config, logger, resource={}):
         self.config = config
         self.resource = resource
-        self._data_store = None
-        self._output_sink = None
-        self.data_store = self.resource.get('data_store', None)
-        self.output_sink = self.resource.get('output_sink', None)
+        self.logger = logger
+        self.data_store = self.resource.get('data_store')
+        self.output_sink = self.resource.get('output_sink')
 
     @property
     def data_store(self):

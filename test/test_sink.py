@@ -1,7 +1,8 @@
-# TODO Sink: Read tests§
+# TODO Sink: Read tests
 
 import sys
 import unittest
+import cPickle as pickle
 
 sys.path.append("../")
 
@@ -9,7 +10,7 @@ from mock import Mock
 from sure import expect
 
 from fixtures.config import CONFIG
-from lib.modules import models
+from lib.modules.models import TimeSeriesTuple, RedisTimeStamped
 from lib.modules import sink
 
 
@@ -35,11 +36,15 @@ class TestInterface(object):
 
 class TestRedisSinkInterface(TestInterface.TestSinkInterface):
 
-    def stub_setex(self, metric_name, ttl, metric_value):
-        self.redis_pipeline_list.append((metric_name, ttl, metric_value))
+    def stub_setex(self, metric_name, ttl, metric):
+        self.redis_pipeline_list.append((metric_name, ttl, metric))
 
     def stub_execute(self):
         self.redis_pipeline_list = []
+
+    def stub_scan(self):
+        # TODO
+        pass
 
     def setUp(self):
         sink.redis = Mock()
@@ -50,13 +55,18 @@ class TestRedisSinkInterface(TestInterface.TestSinkInterface):
     def test_sink_write(self):
         self.my_sink.redis_pipeline.setex = self.stub_setex
         self.my_sink.redis_pipeline.execute = self.stub_execute
-        data_tuple = models.TimeSeriesTuple('service', 60, 1.0)
+        data_tuple = TimeSeriesTuple('service', 60, 1.0)
         for nr_elements_to_insert in [9, 11]:
-            redis_value = [models.RedisLastValue(data_tuple, 60)] * nr_elements_to_insert
+            redis_value = [RedisTimeStamped(60, data_tuple)] * nr_elements_to_insert
             self.my_sink.write(redis_value)
-            expected_pipeline = [('service', 60, 1.0)] * (nr_elements_to_insert % self.configuration["pipeline_size"])
+            expected_pipeline = [("service:60", 60, (pickle.dumps(TimeSeriesTuple('service', 60, 1.0))))] * (nr_elements_to_insert % self.configuration["pipeline_size"])
             expect(self.redis_pipeline_list).to.equal(expected_pipeline)
             self.redis_pipeline_list = []
+
+    def test_sink_read(self):
+        # TODO
+        pass
+
 
     def test_sink_properties(self):
         super(TestRedisSinkInterface, self).test_sink_properties()
@@ -64,12 +74,3 @@ class TestRedisSinkInterface(TestInterface.TestSinkInterface):
         self.my_sink.should.have.property('port')
         self.my_sink.should.have.property('pipeline_size')
         self.my_sink.should.have.property('connection')
-
-
-class TestRedisClusterSinkInterface(TestRedisSinkInterface):
-
-    def setUp(self):
-        sink.rediscluster = Mock()
-        self.configuration = CONFIG["SINK"]["RedisClusterSink"]
-        self.my_sink = sink.RedisClusterSink(self.configuration)
-        self.redis_pipeline_list = []
