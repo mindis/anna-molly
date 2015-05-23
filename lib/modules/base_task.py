@@ -2,42 +2,43 @@
 Base Task
 """
 
-import sink as sink
+import sink
 
 
 class BaseTask(object):
     """
     """
-    def __init__(self, config, logger, resource={}):
+    def __init__(self, config, resource={}):
         self.config = config
         self.resource = resource
-        self.logger = logger
-        self.data_store = self.resource.get('data_store')
-        self.output_sink = self.resource.get('output_sink')
+        self._metric_store = None
+        self._sink = None
+        self.metric_store = self.resource.get('metric_store', None)
+        self.sink = self.resource.get('sink', None)
 
     @property
-    def data_store(self):
-        return self._data_store
+    def metric_store(self):
+        return self._metric_store
 
-    @data_store.setter
-    def data_store(self, value):
+    @metric_store.setter
+    def metric_store(self, value):
         if value:
-            config = self.config['data_store'][value]
-            self._data_store = getattr(sink, value)(config)
+            config = self.config['metric_store'][value]
+            self._metric_store = getattr(sink, value)(config)
         else:
-            self._data_store = None
+            self._metric_store = None
 
     @property
-    def output_sink(self):
-        return self._output_sink
+    def sink(self):
+        return self._sink
 
-    @output_sink.setter
-    def output_sink(self, value):
+    @sink.setter
+    def sink(self, value):
         if value:
-            config = self.config['output_sink'][value]
-            self._output_sink = getattr(sink, value)(config)
+            config = self.config['sink'][value]
+            self._sink = getattr(sink, value)(config)
         else:
-            self._output_sink = None
+            self._sink = None
 
     def run(self):
         raise NotImplementedError
