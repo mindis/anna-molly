@@ -1,118 +1,117 @@
 """
 Outlier Detection using Tukeys Filter Class
 """
-import re
+import itertools
 
-from collections import defaultdict
-from twitter.common import log
+from time import time
 
 from lib.modules.base_task import BaseTask
+from lib.modules.helper import extract_service_name, get_closest_datapoint
 
 
 class TukeysFilter(BaseTask):
 
     def __init__(self, config, options):
-        super(TukeysFilter, self).__init__(config, resource={'data_store': 'RedisSink',
-                                                             'output_sink': 'GraphiteSink'})
+        super(TukeysFilter, self).__init__(config, resource={'metric_store': 'RedisSink',
+                                                             'sink': 'GraphiteSink'})
         self.plugin = options['plugin']
         self.service = options['service']
         self.params = options['params']
-        self.unique_keys = options['unique_keys']
-        # TO DO
-        # logging?
-
-    def _get_valid_value(self, valid_entry, metrics):
-        metric = [sorted(metrics)[-valid_entry]]
-        return self.data_store.read(metric)
-
-    def _extract_service_name(self, name):
-        # TO DO
-        # how to?
-        # name = name.split('.')[1]
-        # name = name.split(':')[1]
-        return name
 
     def read(self):
-        q25 = self.params['q25']
-        q75 = self.params['q75']
-        metrics_regex = self.params['metrics_regex']
-        default = self.params['default']
+        quantile_25 = self.params['quantile_25']
+        quantile_75 = self.params['quantile_75']
+        metrics = self.params['metrics']
+        delay = self.params.get('delay', 60)
 
-        q25_metrics = []
-        q75_metrics = []
-        distribution_metrics = []
-        for metric in self.unique_keys:
-            if q25 in metric:
-                q25_metrics.append(metric)
-            elif q75 in metric:
-                q75_metrics.append(metric)
-            # elif re.match(metrics_regex + '$', metric):
-            elif re.match(metrics_regex, metric):
-                distribution_metrics.append(metric)
+        # read metrics from metric_store
+        quantile_25 = self.metric_store.read(quantile_25)
+        quantile_75 = self.metric_store.read(quantile_75)
+        metrics = self.metric_store.read(metrics)
+        if not (len(quantile_25) * len(quantile_75) * len(metrics)):
+            self.logger.error('No data found for quantile/to be checked metrics. Exiting')
+            return None
 
-        try:
-            q25_val = self._get_valid_value(2, q25_metrics)
-            q75_val = self._get_valid_value(2, q75_metrics)
-            distribution = defaultdict(lambda: default)
-            data = self.data_store.read(distribution_metrics)
-            distribution = defaultdict(lambda: default, [(metric, float(data[el]))
-                                       for el, metric in enumerate(distribution_metrics)
-                                       if data[el]])
-        except Exception as e:
-            return
+        # sort TimeSeriesTuples by timestamp
+        quantile_25 = sorted(quantile_25, key=lambda tup: tup.timestamp)
+        quantile_75 = sorted(quantile_75, key=lambda tup: tup.timestamp)
+        metrics = sorted(metrics, key=lambda tup: (tup.name, tup.timestamp))
 
-        return q25_val, q75_val, distribution
+        # find closest datapoint to now() (corrected by delay) if not too old
+        time_now = time() - delay
+        quantile_25 = get_closest_datapoint(quantile_25, time_now)
+        if time_now - quantile_25.timestamp > 600:
+            self.logger.error('Quantile25 Value is too old (%d sec). Exiting' % (time_now - quantile_25.timestamp))
+            return None
+        quantile_25 = quantile_25.value
+        quantile_75 = get_closest_datapoint(quantile_75, time_now)
+        if time_now - quantile_75.timestamp > 600:
+            self.logger.error('Quantile75 Value is too old (%d sec). Exiting' % (time_now - quantile_75.timestamp))
+            return None
+        quantile_75 = quantile_75.value
+        if quantile_25 > quantile_75:
+            self.logger.error('Inconsistent Quantile Values. Exiting')
+            return None
+
+        # group by metric (e.g. instance) first and find then closest datapoint
+        distribution = {}
+        grouped = itertools.groupby(metrics, key=lambda tup: tup.name)
+        for key, metrics in grouped:
+            closest_datapoint = get_closest_datapoint([metric for metric in metrics], time_now)
+            if time_now - closest_datapoint.timestamp < 600:
+                distribution[key] = closest_datapoint.value
+        if len(distribution) == 0:
+            self.logger.error('No Distribution Values. Exiting')
+            return None
+
+        return quantile_25, quantile_75, distribution
 
     def process(self, data):
 
-        q25_val, q75_val, distribution = data
-        iqr_scaling = self.params['iqr_scaling']
+        quantile_25, quantile_75, distribution = data
+        iqr_scaling = self.params.get('iqr_scaling', 1.5)
 
-        if q25_val > q75_val:
-            return False
-        if len(distribution) == 0:
-            return False
+        iqr = quantile_75 - quantile_25
+        lower_limit = quantile_25 - iqr_scaling * iqr
+        upper_limit = quantile_75 + iqr_scaling * iqr
 
-        iqr = q75_val - q25_val
-        lower_limit = q25_val - iqr_scaling * iqr
-        upper_limit = q75_val + iqr_scaling * iqr
-
-        if 'static_upper_threshold' in self.params:
+        if 'static_lower_threshold' in self.params:
             lower_limit = max(lower_limit, self.params['static_lower_threshold'])
+        if 'static_upper_threshold' in self.params:
             upper_limit = min(upper_limit, self.params['static_upper_threshold'])
 
-        distribution_states = {}
+        states = {}
         for metric, value in distribution.iteritems():
             if value > upper_limit:
-                distribution_states[metric] = 1.0
+                states[metric] = 1.0
             elif value < lower_limit:
-                distribution_states[metric] = -1.0
+                states[metric] = -1.0
             else:
-                distribution_states[metric] = 0.0
+                states[metric] = 0.0
 
-        return q25_val, q75_val, distribution_states
-
-    def evaluate(self, data):
-        return data
+        return quantile_25, quantile_75, states
 
     def write(self, data):
-        q25_val, q75_val, states = data
+        quantile_25, quantile_75, states = data
         prefix = '%s.%s' % (self.plugin, self.service)
         count = len(states)
         invalid = 0
         for name, state in states.iteritems():
             if state:
                 invalid += 1
-            name = self._extract_service_name(name)
-            self.output_sink.write(prefix + '.' + name, state)
+            name = extract_service_name(name)
+            self.sink.write(prefix + '.' + name, state)
 
-        self.output_sink.write(prefix + '.q25', q25_val)
-        self.output_sink.write(prefix + '.q75', q75_val)
-        self.output_sink.write(prefix + '.count', count)
-        self.output_sink.write(prefix + '.invalid', invalid)
+        self.sink.write(prefix + '.quantile_25', quantile_25)
+        self.sink.write(prefix + '.quantile_75', quantile_75)
+        self.sink.write(prefix + '.count', count)
+        self.sink.write(prefix + '.invalid', invalid)
 
     def run(self):
         data = self.read()
-        output = self.process(data)
-        state = self.evaluate(output)
-        self.write(state)
+        if data:
+            state = self.process(data)
+            self.write(state)
+            return True
+        else:
+            return None

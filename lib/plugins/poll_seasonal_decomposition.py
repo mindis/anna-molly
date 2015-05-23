@@ -1,5 +1,5 @@
 """
-Wrapper for Seasonal Decomposition
+Poll Script for Seasonal Decomposition
 """
 
 from .. import app
@@ -20,10 +20,8 @@ class PollSeasonalDecomposition(BaseTask):
         """
         algo_config = config_loader.load('/opt/anna-molly/config/services.json')
         algo_config = algo_config.get(self.plugin, {None: None})
-        unique_keys = self.data_store.read_all_keys()
         for service, options in algo_config.iteritems():
             if service and options:
-                params = {'service': service, 'options': options,
-                          'unique_keys': unique_keys, 'plugin': self.plugin}
+                params = {'service': service, 'options': options, 'plugin': self.plugin}
                 app.task_runner.delay(SeasonalDecomposition, params)
         return True
