@@ -1,4 +1,5 @@
 import re
+from types import FunctionType, BuiltinFunctionType
 
 from boltons.dictutils import OrderedMultiDict
 from twitter.common import log
@@ -15,6 +16,8 @@ class EventEmitter2(object):
         # TODO: Add listener to remove
 
     def add_listener(self, event, listener, count=0):
+        if not (isinstance(listener, FunctionType) or isinstance(listener, BuiltinFunctionType)):
+            raise Exception("Invalid Listener")
         _event = re.compile(event)
         _listener = {"handler": listener, "calls": 0, "calls_left": count}
         self.events.add(_event, _listener)
@@ -32,13 +35,19 @@ class EventEmitter2(object):
                 yield listener["handler"](**kwargs)
 
     def remove_listener(self, pattern, listener):
+        pattern = re.compile(pattern)
+        listeners = self.events.getlist(pattern)
+        for pattern, _listener in self.events.iteritems(multi=True):
+            if _listener['handler'] == listener:
+                listener = _listener
+                break
         listeners = self.events.getlist(pattern)
         listeners.remove(listener)
         if len(listeners):
             self.events.update({pattern: listeners})
         else:
             self.events._remove(pattern)
-        return
+        return True
 
     def on_any(self, listener):
         raise NotImplementedError

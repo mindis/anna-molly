@@ -10,12 +10,7 @@ CONFIG = {
         "RedisSink": {
             "host": "127.0.0.1",
             "port": 6379,
-            "pipeline_size": 10
-        },
-        "RedisClusterSink": {
-            "host": "127.0.0.1",
-            "port": 7000,
-            "pipeline_size": 10
+            "pipeline_size": 100
         }
     }
 }

@@ -9,7 +9,7 @@ from boltons.dictutils import OrderedMultiDict as OMD
 
 sys.path.append("../")
 
-from EventEmitter2.event_emitter_2 import EventEmitter2
+from lib.modules.event_emitter_2 import EventEmitter2
 
 
 def Echo():
@@ -33,7 +33,6 @@ class TestEventEmitter2(unittest.TestCase):
         self.ee.should.have.property('on').being.equal(self.ee.add_listener)
         self.ee.should.have.property('off').being.equal(self.ee.remove_listener)
         self.ee.should.have.property('once')
-        self.ee.should.have.property('twice')
 
     def test_add_listener_should_add_a_listener_with_call_count(self):
         return_value = self.ee.add_listener("some_reg.X", Echo, 100)
@@ -60,4 +59,4 @@ class TestEventEmitter2(unittest.TestCase):
         return_value = self.ee.remove_listener("some_reg.X", Echo)
         expect(return_value).to.equal(True)
         expect(self.ee.events).to.be.a(OMD)
-        expect(self.ee.events.keys()).to.equal([])%
+        expect(self.ee.events.keys()).to.equal([])

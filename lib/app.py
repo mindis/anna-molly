@@ -28,7 +28,7 @@ def task_runner(plugin, params):
     :return:
     """
     try:
-        plugin = plugin(config=CONFIG, options=params)
+        plugin = plugin(config=CONFIG, logger=task_runner.get_logger(), options=params)
         return plugin.run()
     except:
         traceback.print_exc()
