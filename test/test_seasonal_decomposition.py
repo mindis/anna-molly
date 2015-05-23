@@ -5,16 +5,17 @@ import unittest
 sys.path.append("../")
 
 from mock import Mock
-from struct import pack
 from sure import expect
 
 from fixtures.config import CONFIG
 from lib.plugins import seasonal_decomposition
 from lib.modules.models import TimeSeriesTuple
 
-## TODO
+# TODO
+# mock GraphiteSink
 # test for run
 # test for eval methods
+
 
 class TestSeasonalDecomposition(unittest.TestCase):
 
@@ -61,7 +62,8 @@ class TestSeasonalDecomposition(unittest.TestCase):
             }
         }
         seasonal_decomposition.time = Mock(return_value=1130)
-        self.test_seasonal_decomposition = seasonal_decomposition.SeasonalDecomposition(config=CONFIG, options=self.options)
+        self.test_seasonal_decomposition = seasonal_decomposition.SeasonalDecomposition(
+            config=CONFIG, options=self.options)
         self.test_seasonal_decomposition.logger = Mock()
         self.test_seasonal_decomposition.TDigest = Mock()
         self.test_seasonal_decomposition.TDigest.quantile = self.stub_quantile
@@ -76,15 +78,22 @@ class TestSeasonalDecomposition(unittest.TestCase):
         self.test_seasonal_decomposition = None
 
     def test_seasonal_decomposition_should_be_callable(self):
-        self.test_seasonal_decomposition.should.be.a(seasonal_decomposition.SeasonalDecomposition)
-        self.test_seasonal_decomposition.should.have.property('plugin').being.equal('SeasonalDecomposition')
-        self.test_seasonal_decomposition.should.have.property('service').being.equal(self.options['service'])
-        self.test_seasonal_decomposition.should.have.property('params').being.equal(self.options['params'])
+        self.test_seasonal_decomposition.should.be.a(
+            seasonal_decomposition.SeasonalDecomposition)
+        self.test_seasonal_decomposition.should.have.property(
+            'plugin').being.equal('SeasonalDecomposition')
+        self.test_seasonal_decomposition.should.have.property(
+            'service').being.equal(self.options['service'])
+        self.test_seasonal_decomposition.should.have.property(
+            'params').being.equal(self.options['params'])
 
     def test_read_for_valid_data(self):
-        self.meta_store['service1:1120'] = TimeSeriesTuple('service1', 1120, 0.0)
-        self.meta_store['service1:1150'] = TimeSeriesTuple('service1', 1150, 0.0)
-        self.meta_store['service1:1160'] = TimeSeriesTuple('service1', 1160, 0.0)
+        self.meta_store['service1:1120'] = TimeSeriesTuple(
+            'service1', 1120, 0.0)
+        self.meta_store['service1:1150'] = TimeSeriesTuple(
+            'service1', 1150, 0.0)
+        self.meta_store['service1:1160'] = TimeSeriesTuple(
+            'service1', 1160, 0.0)
         data = self.test_seasonal_decomposition.read()
         exp = [TimeSeriesTuple('service1', 1100, 0.1),
                TimeSeriesTuple('service1', 1110, 0.5),
@@ -121,7 +130,8 @@ class TestSeasonalDecomposition(unittest.TestCase):
         expect(data).to.be.equal(None)
 
     def test_write(self):
-        self.test_seasonal_decomposition.write((1.0, 2.0, 10, {'flag': 1, 'upper': 5, 'lower': -5}))
+        self.test_seasonal_decomposition.write(
+            (1.0, 2.0, 10, {'flag': 1, 'upper': 5, 'lower': -5}))
         # TO DO
         # assert write tdigest call
         prefix = 'SeasonalDecomposition.service.'

@@ -118,7 +118,8 @@ class SeasonalDecomposition(BaseTask):
     def write(self, state):
         seasonal, trend, error, state = state
         # store distribution
-        self.metric_store.write(self.tdigest_key, self.td.serialize())
+        # FIXME
+        self.metric_store.write(self.tdigest_key)
         # write states
         prefix = '%s.%s' % (self.plugin, self.service)
         for name, value in state.iteritems():

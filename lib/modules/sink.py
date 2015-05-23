@@ -28,6 +28,7 @@ class Sink(Interface):
 class RedisSink(Sink):
 
     def __init__(self, config):
+        self.config = config
         self.host = config['host']
         self.port = config['port']
         self.count = 0
@@ -40,7 +41,7 @@ class RedisSink(Sink):
             self.redis_pipeline = redis_conn.pipeline()
             return redis_conn
         except Exception as _e:
-            log.error("RedisSink: ConnectionError\n %s %s" % (config, str(_e)))
+            log.error("RedisSink: ConnectionError\n %s %s" % (self.config, str(_e)))
 
     def write(self, datapoints):
         for datapoint in datapoints:
@@ -65,6 +66,7 @@ class RedisSink(Sink):
 class GraphiteSink(Sink):
 
     def __init__(self, config):
+        self.config = config
         self.host = config['host']
         self.port = config['port']
         self.prefix = config['prefix']
@@ -76,7 +78,7 @@ class GraphiteSink(Sink):
             sock.connect((self.host, self.port))
             return sock
         except Exception as _e:
-            log.error("Cannot connect to Graphite Sink with config:%s\n%s" %(config, str(_e)))
+            log.error("Cannot connect to Graphite Sink with config:%s\n%s" %(self.config, str(_e)))
 
     def write(self, datapoints):
         for datapoint in datapoints:

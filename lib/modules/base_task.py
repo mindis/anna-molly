@@ -1,5 +1,7 @@
 import sink
 
+# TODO. Needs improvement. Rename sink/metric_store
+
 
 class BaseTask(object):
 
@@ -12,6 +14,7 @@ class BaseTask(object):
         self._metric_store = None
         self._sink = None
         self.metric_store = self.resource.get('metric_store', None)
+        # FIXME: needs rename
         self.sink = self.resource.get('sink', None)
 
     @property
@@ -21,7 +24,7 @@ class BaseTask(object):
     @metric_store.setter
     def metric_store(self, value):
         if value:
-            config = self.config['metric_store'][value]
+            config = self.config['metric_store']
             self._metric_store = getattr(sink, value)(config)
         else:
             self._metric_store = None
@@ -33,7 +36,7 @@ class BaseTask(object):
     @sink.setter
     def sink(self, value):
         if value:
-            config = self.config['sink'][value]
+            config = self.config['sink']
             self._sink = getattr(sink, value)(config)
         else:
             self._sink = None
