@@ -13,7 +13,7 @@ class TukeysFilter(BaseTask):
 
     def __init__(self, config, options):
         super(TukeysFilter, self).__init__(config, resource={'metric_store': 'RedisSink',
-                                                             'sink': 'GraphiteSink'})
+                                                             'graphite_sink': 'GraphiteSink'})
         self.plugin = options['plugin']
         self.service = options['service']
         self.params = options['params']
@@ -100,12 +100,12 @@ class TukeysFilter(BaseTask):
             if state:
                 invalid += 1
             name = extract_service_name(name)
-            self.sink.write(prefix + '.' + name, state)
+            self.graphite_sink.write(prefix + '.' + name, state)
 
-        self.sink.write(prefix + '.quantile_25', quantile_25)
-        self.sink.write(prefix + '.quantile_75', quantile_75)
-        self.sink.write(prefix + '.count', count)
-        self.sink.write(prefix + '.invalid', invalid)
+        self.graphite_sink.write(prefix + '.quantile_25', quantile_25)
+        self.graphite_sink.write(prefix + '.quantile_75', quantile_75)
+        self.graphite_sink.write(prefix + '.count', count)
+        self.graphite_sink.write(prefix + '.invalid', invalid)
 
     def run(self):
         data = self.read()

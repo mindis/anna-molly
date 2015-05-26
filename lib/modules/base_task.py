@@ -1,7 +1,5 @@
 import sink
 
-# TODO. Needs improvement. Rename sink/metric_store
-
 
 class BaseTask(object):
 
@@ -15,7 +13,7 @@ class BaseTask(object):
         self._sink = None
         self.metric_store = self.resource.get('metric_store', None)
         # FIXME: needs rename
-        self.sink = self.resource.get('sink', None)
+        self.graphite_sink = self.resource.get('graphite_sink', None)
 
     @property
     def metric_store(self):
@@ -31,15 +29,16 @@ class BaseTask(object):
 
     @property
     def sink(self):
-        return self._sink
+        return self.graphite_sink
 
     @sink.setter
     def sink(self, value):
         if value:
-            config = self.config['sink']
-            self._sink = getattr(sink, value)(config)
+            config = self.config['graphite_sink']
+            print value
+            self.graphite_sink = getattr(sink, value)(config)
         else:
-            self._sink = None
+            self.graphite_sink = None
 
     def run(self):
         raise NotImplementedError

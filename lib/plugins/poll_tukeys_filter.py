@@ -12,7 +12,7 @@ from tukeys_filter import TukeysFilter
 class PollTukeysFilter(BaseTask):
 
     def __init__(self, config, options):
-        super(PollTukeysFilter, self).__init__(config, resource={'data_store': 'RedisSink'})
+        super(PollTukeysFilter, self).__init__(config, resource={'metric_store': 'RedisSink'})
         self.plugin = 'TukeysFilter'
 
     def run(self):

@@ -12,7 +12,7 @@ from seasonal_decomposition import SeasonalDecomposition
 class PollSeasonalDecomposition(BaseTask):
 
     def __init__(self, config, options):
-        super(PollSeasonalDecomposition, self).__init__(config, resource={'data_store': 'RedisSink'})
+        super(PollSeasonalDecomposition, self).__init__(config, resource={'metric_store': 'RedisSink'})
         self.plugin = 'SeasonalDecomposition'
 
     def run(self):

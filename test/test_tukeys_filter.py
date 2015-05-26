@@ -55,7 +55,8 @@ class TestTukeysFilter(unittest.TestCase):
         self.test_tukeys_filter.logger = Mock()
         self.test_tukeys_filter.metric_store.read = self.stub_read
         self.write_pipeline = {}
-        self.test_tukeys_filter.sink.write = self.stub_write
+        self.test_tukeys_filter.graphite_sink = Mock()
+        self.test_tukeys_filter.graphite_sink.write = self.stub_write
 
     def tearDown(self):
         self.test_tukeys_filter = None

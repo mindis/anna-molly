@@ -16,7 +16,7 @@ class SeasonalDecomposition(BaseTask):
 
     def __init__(self, config, options):
         super(SeasonalDecomposition, self).__init__(config, resource={'metric_store': 'RedisSink',
-                                                                      'sink': 'GraphiteSink'})
+                                                                      'graphite_sink': 'GraphiteSink'})
         self.plugin = options['plugin']
         self.service = options['service']
         self.params = options['params']
@@ -133,10 +133,10 @@ class SeasonalDecomposition(BaseTask):
         prefix = '%s.%s' % (self.plugin, self.service)
         for name, value in state.iteritems():
             metric_name = '%s.%s' % (prefix, name)
-            self.sink.write(metric_name, value)
-        self.sink.write('%s.%s' % (prefix, 'seasonal'), seasonal)
-        self.sink.write('%s.%s' % (prefix, 'trend'), trend)
-        self.sink.write('%s.%s' % (prefix, 'error'), error)
+            self.graphite_sink.write(metric_name, value)
+        self.graphite_sink.write('%s.%s' % (prefix, 'seasonal'), seasonal)
+        self.graphite_sink.write('%s.%s' % (prefix, 'trend'), trend)
+        self.graphite_sink.write('%s.%s' % (prefix, 'error'), error)
 
     def run(self):
         data = self.read()
