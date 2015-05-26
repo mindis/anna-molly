@@ -23,4 +23,12 @@ CONFIG = {
         "port": 6379,
         "prefix": "AnnaMolly"
     },
+    "celery": {
+        "broker": {
+            "host": "someHost"
+        },
+        "backend": {
+            "host": "someHost"
+        }
+    }
 }

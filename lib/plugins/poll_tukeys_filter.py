@@ -1,12 +1,11 @@
 """
 Poll Script for Tukeys Outlier Filter
 """
+from tukeys_filter import TukeysFilter
 
 from .. import app
 from lib.modules.base_task import BaseTask
 from lib.modules import config as config_loader
-
-from tukeys_filter import TukeysFilter
 
 
 class PollTukeysFilter(BaseTask):

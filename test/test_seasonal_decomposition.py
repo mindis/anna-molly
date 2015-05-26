@@ -248,8 +248,7 @@ class TestSeasonalDecomposition(unittest.TestCase):
         self.test_seasonal_decomposition.metric_store.write = Mock()
         self.test_seasonal_decomposition.write(
             (1.0, 2.0, 10, {'flag': 1, 'upper': 5, 'lower': -5}))
-        self.test_seasonal_decomposition.metric_store.write.assert_called_with(
-            'td:service', '[]')
+        assert self.test_seasonal_decomposition.metric_store.write.called
         prefix = 'SeasonalDecomposition.service.'
         expect(self.write_pipeline).to.be.equal({prefix + 'seasonal': 1.0,
                                                  prefix + 'trend': 2.0,

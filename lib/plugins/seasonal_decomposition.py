@@ -126,8 +126,6 @@ class SeasonalDecomposition(BaseTask):
 
     def write(self, state):
         seasonal, trend, error, state = state
-        # store distribution
-        # FIXME
         self.metric_store.write(RedisGeneric(self.tdigest_key, self.td))
         # write states
         prefix = '%s.%s' % (self.plugin, self.service)
