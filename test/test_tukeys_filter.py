@@ -1,4 +1,3 @@
-import pickle
 import re
 import sys
 import unittest
@@ -11,9 +10,6 @@ from sure import expect
 from fixtures.config import CONFIG
 from lib.plugins import tukeys_filter
 from lib.modules.models import TimeSeriesTuple
-
-## TODO
-# test for configured upper and lower thresholds
 
 
 class TestTukeysFilter(unittest.TestCase):
@@ -120,8 +116,15 @@ class TestTukeysFilter(unittest.TestCase):
                                     'host.ip:0-0-0-2.cpu_prct_used': 1})
 
     def test_process_with_additional_static_thresholds(self):
-        pass
-        # TODO
+        self.options['params']['static_lower_threshold'] = 0.1
+        self.options['params']['static_upper_threshold'] = 1.9
+        self.test_tukeys_filter = None
+        self.test_tukeys_filter = tukeys_filter.TukeysFilter(config=CONFIG, options=self.options)
+        self.test_tukeys_filter.metric_store.read = self.stub_read
+        data = self.test_tukeys_filter.read()
+        quantile_25, quantile_75, states = self.test_tukeys_filter.process(data)
+        expect(states).to.be.equal({'host.ip:0-0-0-1.cpu_prct_used': 1,
+                                    'host.ip:0-0-0-2.cpu_prct_used': 1})
 
     def test_write(self):
         data = self.test_tukeys_filter.read()
@@ -134,3 +137,16 @@ class TestTukeysFilter(unittest.TestCase):
                                                  prefix + 'invalid': 1,
                                                  prefix + '0-0-0-1': 0,
                                                  prefix + '0-0-0-2': 1})
+
+    def test_run_valid_data(self):
+        self.test_tukeys_filter.read = Mock(return_value='data')
+        self.test_tukeys_filter.process = Mock(return_value='state')
+        self.test_tukeys_filter.write = Mock(return_value=True)
+        self.test_tukeys_filter.run()
+        self.test_tukeys_filter.read.assert_called_with()
+        self.test_tukeys_filter.process.assert_called_with('data')
+        self.test_tukeys_filter.write.assert_called_with('state')
+
+    def test_run_invalid_data(self):
+        self.test_tukeys_filter.read = Mock(return_value=None)
+        expect(self.test_tukeys_filter.run()).to.be.equal(None)
