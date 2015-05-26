@@ -7,6 +7,7 @@ from tdigest import TDigest
 
 from numpy import median, asarray
 
+from lib.modules.models import RedisGeneric
 from lib.modules.base_task import BaseTask
 from lib.modules.helper import find_step_size, insert_missing_datapoints
 
@@ -119,7 +120,7 @@ class SeasonalDecomposition(BaseTask):
         seasonal, trend, error, state = state
         # store distribution
         # FIXME
-        self.metric_store.write(self.tdigest_key)
+        self.metric_store.write(RedisGeneric(self.tdigest_key, self.td))
         # write states
         prefix = '%s.%s' % (self.plugin, self.service)
         for name, value in state.iteritems():

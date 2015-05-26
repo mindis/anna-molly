@@ -25,3 +25,10 @@ class RedisTimeStamped(object):
 
     def get_name(self):
         return "%s:%d" % (self.datapoint.name, self.datapoint.timestamp)
+
+
+class RedisGeneric(object):
+    def __init__(self, name, datapoint, ttl=None):
+        self.datapoint = datapoint
+        self.ttl = ttl
+        self.name = name

@@ -46,11 +46,17 @@ class RedisSink(Sink):
     def write(self, datapoints):
         for datapoint in datapoints:
             self.count += 1
-            self.redis_pipeline.setex(
-                datapoint.name,
-                datapoint.ttl,
-                pickle.dumps(datapoint.datapoint)
-            )
+            if datapoint.ttl:
+                self.redis_pipeline.setex(
+                    datapoint.name,
+                    datapoint.ttl,
+                    pickle.dumps(datapoint.datapoint)
+                )
+            else:
+                self.redis_pipeline.set(
+                    datapoint.name,
+                    pickle.dumps(datapoint.datapoint)
+                )
             if self.count % self.pipeline_size == 0:
                 self.redis_pipeline.execute()
 
@@ -78,7 +84,7 @@ class GraphiteSink(Sink):
             sock.connect((self.host, self.port))
             return sock
         except Exception as _e:
-            log.error("Cannot connect to Graphite Sink with config:%s\n%s" %(self.config, str(_e)))
+            log.error("Cannot connect to Graphite Sink with config:%s\n%s" % (self.config, str(_e)))
 
     def write(self, datapoints):
         for datapoint in datapoints:
