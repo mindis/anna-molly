@@ -4,7 +4,7 @@ import sys
 
 from cStringIO import StringIO
 
-from lib.modules.models import TimeSeriesTuple
+from models import TimeSeriesTuple
 
 
 class SafeUnpickler(object):
@@ -26,7 +26,7 @@ class SafeUnpickler(object):
         return getattr(mod, name)
 
     @classmethod
-    def transform(cls, pickle_string):
+    def loads(cls, pickle_string):
         pickle_obj = pickle.Unpickler(StringIO(pickle_string))
         pickle_obj.find_global = cls.find_class
         return pickle_obj.load()

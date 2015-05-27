@@ -37,9 +37,9 @@ class TestPollTukeysFilter(unittest.TestCase):
         self.algo_config = {'cpu': {'option': 0}}
         self.test_poll_tukeys_filter.run()
         poll_tukeys_filter.app.task_runner.delay.assert_called_once_with(tukeys_filter.TukeysFilter,
-                                                                                   {'options': {'option': 0}, 'plugin': 'TukeysFilter', 'service': 'cpu'})
+                                                                         {'options': {'option': 0}, 'plugin': 'TukeysFilter', 'service': 'cpu'})
 
-    def test_run_valid_input(self):
+    def test_run_invalid_input(self):
         poll_tukeys_filter.app.task_runner.delay = Mock()
         self.algo_config = {'cpu': None}
         self.test_poll_tukeys_filter.run()

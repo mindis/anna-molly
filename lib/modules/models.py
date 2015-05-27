@@ -15,8 +15,8 @@ class TimeSeriesTuple(namedtuple('TimeSeriesTuple', 'name timestamp value')):
 
 class RedisTimeStamped(object):
 
-    def __init__(self, ttl, datapoint):
-        self.ttl = ttl
+    def __init__(self, defaults, datapoint):
+        self.ttl = defaults["ttl"]
         self.datapoint = datapoint
         self.name = self.get_name()
 

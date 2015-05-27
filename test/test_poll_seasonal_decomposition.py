@@ -13,8 +13,6 @@ lib.modules.config.load.return_value = CONFIG
 
 from lib.plugins import poll_seasonal_decomposition, seasonal_decomposition
 
-# TODO
-# new config structure also in poll script
 
 
 class TestPollSeasonalDecomposition(unittest.TestCase):

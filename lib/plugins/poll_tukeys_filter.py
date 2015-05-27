@@ -1,9 +1,11 @@
 """
 Poll Script for Tukeys Outlier Filter
 """
-from tukeys_filter import TukeysFilter
+import sys
+sys.path.append('../')
 
 from .. import app
+from tukeys_filter import TukeysFilter
 from lib.modules.base_task import BaseTask
 from lib.modules import config as config_loader
 

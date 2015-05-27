@@ -16,8 +16,8 @@ class EventEmitter2(object):
         # TODO: Add listener to remove
 
     def add_listener(self, event, listener, count=0):
-        if not (isinstance(listener, FunctionType) or isinstance(listener, BuiltinFunctionType)):
-            raise Exception("Invalid Listener")
+        if (isinstance(listener, FunctionType) or isinstance(listener, BuiltinFunctionType)):
+            raise Exception("Invalid Listener: %s" % (str(listener)))
         _event = re.compile(event)
         _listener = {"handler": listener, "calls": 0, "calls_left": count}
         self.events.add(_event, _listener)

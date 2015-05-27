@@ -12,7 +12,6 @@ class BaseTask(object):
         self._metric_store = None
         self._sink = None
         self.metric_store = self.resource.get('metric_store', None)
-        # FIXME: needs rename
         self.graphite_sink = self.resource.get('graphite_sink', None)
 
     @property

@@ -10,7 +10,6 @@ CONFIG = config.load('/opt/anna-molly/config/analyzer.json')
 app = Celery('anna-molly', broker=CONFIG['celery']['broker']['host'])
 app.conf.update(
     CELERY_IMPORTS=('celery.task.http'),
-    # TODO celery backend configure
     CELERY_RESULT_BACKEND = 'redis',
     CELERY_RESULT_DBURI = CONFIG['celery']['backend']['host'],
     CELERY_RESULT_PERSISTENT = True,
@@ -28,6 +27,7 @@ def task_runner(plugin, params):
     :return:
     """
     try:
+        print plugin
         plugin = plugin(config=CONFIG, logger=task_runner.get_logger(), options=params)
         return plugin.run()
     except:
