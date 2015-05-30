@@ -52,9 +52,12 @@ def get_closest_datapoint(datapoints, time_now):
 
 
 def find_step_size(timeseries):
-    step_sizes = [timeseries[i].timestamp - timeseries[i - 1].timestamp
-                  for i in range(1, len(timeseries))]
-    return max(set(step_sizes), key=step_sizes.count)
+    try:
+        step_sizes = [timeseries[i].timestamp - timeseries[i - 1].timestamp
+                      for i in range(1, len(timeseries))]
+        return max(set(step_sizes), key=step_sizes.count)
+    except Exception as _e:
+        return None
 
 
 def insert_missing_datapoints(timeseries, default, step_size):

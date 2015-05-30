@@ -31,13 +31,14 @@ class RedisSink(Sink):
         self.config = config
         self.host = config['host']
         self.port = config['port']
+        self.db = config['db']
         self.count = 0
-        self.pipeline_size = config.get('pipeline_size', None) or 100
+        self.pipeline_size = config.get('pipeline_size', 1)
         self.connection = self.connect()
 
     def connect(self):
         try:
-            redis_conn = redis.StrictRedis(host=self.host, port=self.port)
+            redis_conn = redis.StrictRedis(host=self.host, port=self.port, db=self.db)
             self.redis_pipeline = redis_conn.pipeline()
             return redis_conn
         except Exception as _e:
@@ -89,6 +90,6 @@ class GraphiteSink(Sink):
     def write(self, datapoints):
         for datapoint in datapoints:
             try:
-                self.connection.sendall("%s.%f %s %d\n" % (datapoint.name, datapoint.value, data.timestamp))
+                self.connection.sendall("%s.%s %s %d\n" % (self.prefix, datapoint.name, datapoint.value, datapoint.timestamp))
             except Exception as _e:
                 log.error("GraphiteSink: WriteError\n %s \n%s" % (datapoint, str(_e)))

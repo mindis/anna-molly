@@ -9,13 +9,14 @@ sys.path.append('../')
 
 from lib.modules.base_task import BaseTask
 from lib.modules.helper import extract_service_name, get_closest_datapoint
+from lib.modules.models import TimeSeriesTuple
 
 
 class TukeysFilter(BaseTask):
 
-    def __init__(self, config, options):
-        super(TukeysFilter, self).__init__(config, resource={'metric_store': 'RedisSink',
-                                                             'graphite_sink': 'GraphiteSink'})
+    def __init__(self, config, logger, options):
+        super(TukeysFilter, self).__init__(config, logger, resource={'metric_store': 'RedisSink',
+                                                             'sink': 'GraphiteSink'})
         self.plugin = options['plugin']
         self.service = options['service']
         self.params = options['params']
@@ -27,12 +28,12 @@ class TukeysFilter(BaseTask):
         delay = self.params.get('delay', 60)
 
         # read metrics from metric_store
-        quantile_25 = self.metric_store.read(quantile_25)
-        quantile_75 = self.metric_store.read(quantile_75)
-        metrics = self.metric_store.read(metrics)
+        quantile_25 = [i for i in self.metric_store.read(quantile_25)]
+        quantile_75 = [i for i in self.metric_store.read(quantile_75)]
+        metrics = [i for i in self.metric_store.read(metrics)]
         if not (len(quantile_25) * len(quantile_75) * len(metrics)):
-            self.logger.error('No data found for quantile/to be checked metrics. Exiting')
-            return None
+                self.logger.error('No data found for quantile/to be checked metrics. Exiting')
+                return None
 
         # sort TimeSeriesTuples by timestamp
         quantile_25 = sorted(quantile_25, key=lambda tup: tup.timestamp)
@@ -98,16 +99,17 @@ class TukeysFilter(BaseTask):
         prefix = '%s.%s' % (self.plugin, self.service)
         count = len(states)
         invalid = 0
+        now = int(time())
         for name, state in states.iteritems():
             if state:
                 invalid += 1
             name = extract_service_name(name)
-            self.graphite_sink.write(prefix + '.' + name, state)
+            self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, name), now, state))
 
-        self.graphite_sink.write(prefix + '.quantile_25', quantile_25)
-        self.graphite_sink.write(prefix + '.quantile_75', quantile_75)
-        self.graphite_sink.write(prefix + '.count', count)
-        self.graphite_sink.write(prefix + '.invalid', invalid)
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'quantile_25'), now, quantile_25))
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'quantile_75'), now, quantile_75))
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'count'), now, count))
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'invalid'), now, invalid))
 
     def run(self):
         data = self.read()

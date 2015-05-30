@@ -1,6 +1,7 @@
 import sys
 import traceback
 from celery import Celery
+from twitter.common import log
 
 sys.path.append('../')
 from modules import config
@@ -27,8 +28,7 @@ def task_runner(plugin, params):
     :return:
     """
     try:
-        print plugin
-        plugin = plugin(config=CONFIG, logger=task_runner.get_logger(), options=params)
+        plugin = plugin(config=CONFIG, logger=log, options=params)
         return plugin.run()
     except:
         traceback.print_exc()

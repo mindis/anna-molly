@@ -12,8 +12,8 @@ from lib.modules import config as config_loader
 
 class PollTukeysFilter(BaseTask):
 
-    def __init__(self, config, options):
-        super(PollTukeysFilter, self).__init__(config, resource={'metric_store': 'RedisSink'})
+    def __init__(self, config, logger, options):
+        super(PollTukeysFilter, self).__init__(config, logger, resource={'metric_store': 'RedisSink'})
         self.plugin = 'TukeysFilter'
 
     def run(self):
@@ -23,6 +23,6 @@ class PollTukeysFilter(BaseTask):
         algo_config = algo_config.get(self.plugin, {None: None})
         for service, options in algo_config.iteritems():
             if service and options:
-                params = {'options': options, 'plugin': self.plugin, 'service': service}
-                app.task_runner.delay(TukeysFilter, params)
+                option = {'params': options, 'plugin': self.plugin, 'service': service}
+                app.task_runner.delay(TukeysFilter, option)
         return True

@@ -3,20 +3,24 @@ Seasonal Decomposition Class
 """
 import json
 import rpy2.robjects as robjects
-from tdigest import TDigest
+import sys
 
 from numpy import median, asarray
+from time import time
+from tdigest import TDigest
 
-from lib.modules.models import RedisGeneric
+sys.path.append('../')
+
 from lib.modules.base_task import BaseTask
+from lib.modules.models import RedisGeneric
 from lib.modules.helper import find_step_size, insert_missing_datapoints
-
+from lib.modules.models import TimeSeriesTuple
 
 class SeasonalDecomposition(BaseTask):
 
-    def __init__(self, config, options):
-        super(SeasonalDecomposition, self).__init__(config, resource={'metric_store': 'RedisSink',
-                                                                      'graphite_sink': 'GraphiteSink'})
+    def __init__(self, config, logger, options):
+        super(SeasonalDecomposition, self).__init__(config, logger, resource={'metric_store': 'RedisSink',
+                                                                      'sink': 'GraphiteSink'})
         self.plugin = options['plugin']
         self.service = options['service']
         self.params = options['params']
@@ -74,72 +78,79 @@ class SeasonalDecomposition(BaseTask):
         period_length = self.params['period_length']
         seasons = self.params['seasons']
         default = self.params['default']
-
-        tdigest_json = self.metric_store.read(self.tdigest_key)
+        tdigest_json = [el for el in self.metric_store.read(self.tdigest_key)]
         if tdigest_json:
-            centroids = json.loads(tdigest_json)
+            centroids = json.loads(tdigest_json[0])
             [self.td.add(c[0], c[1]) for c in centroids]
 
-        # gather data and fill with defaults if necessary
-        data = self.metric_store.read(metric)
+        # gather data and assure requirements
+        data = [el for el in self.metric_store.read(metric)]
         data = sorted(data, key=lambda tup: tup.timestamp)
         step_size = find_step_size(data)
-        data = insert_missing_datapoints(data, default, step_size)
-
-        if len(data) < period_length * seasons:
-            self.logger.error('Not enough Datapoints. Exiting')
+        if not step_size:
+            self.logger.error('Datapoints have no common time grid or are not enough. Exiting')
             return None
-
+        if data[-1].timestamp - int(time()) > 2 * step_size:
+            self.logger.error('Datapoints are too old (%d sec). Exiting' % (data[-1].timestamp - int(time())))
+            return None
+        data = insert_missing_datapoints(data, default, step_size)
+        if len(data) < period_length * seasons:
+            self.logger.error('Not enough (%d) datapoints. Exiting' % len(data))
+            return None
         data = data[-period_length * seasons - 1:-1]
+        
         return data
 
     def process(self, data):
-        period_length = self.params['period_length']
-        error_type = self.params.get('error_type', 'norm')
-        data = [el.value for el in data]
-        try:
-            r_stl = robjects.r.stl
-            r_ts = robjects.r.ts
-            r_data_ts = r_ts(data, frequency=period_length)
-            r_res = r_stl(r_data_ts, s_window="periodic", robust=True)
-            r_res_ts = asarray(r_res[0])
-            seasonal = r_res_ts[:, 0][-1]
-            trend = r_res_ts[:, 1][-1]
-            _error = r_res_ts[:, 2][-1]
-            model = seasonal + trend
-        except Exception as e:
-            self.logger.error('STL Call failed: %s. Exiting' % e)
-            return None, None, None, {'flag': -1}
+        if data:
+            period_length = self.params['period_length']
+            error_type = self.params.get('error_type', 'norm')
+            data = [float(el.value) for el in data]
 
-        if error_type == 'norm':
-            error = _error / model if model != 0 else -1
-        elif error_type == 'median':
-            error = data[-1] - seasonal - median(data)
-        elif error_type == 'stl':
-            error = _error
+            try:
+                r_stl = robjects.r.stl
+                r_ts = robjects.r.ts
+                r_data_ts = r_ts(data, frequency=period_length)
+                r_res = r_stl(r_data_ts, s_window="periodic", robust=True)
+                r_res_ts = asarray(r_res[0])
+                seasonal = r_res_ts[:, 0][-1]
+                trend = r_res_ts[:, 1][-1]
+                _error = r_res_ts[:, 2][-1]
+                model = seasonal + trend
+            except Exception as e:
+                self.logger.error('STL Call failed: %s. Exiting' % e)
+                return (0.0, 0.0, 0.0, {'flag': -1})
 
-        # add error to distribution and evaluate
-        self.td.add(error, 1.0)
-        state = self.error_eval[self.params['error_handling']](error)
+            if error_type == 'norm':
+                error = _error / model if model != 0 else -1
+            elif error_type == 'median':
+                error = data[-1] - seasonal - median(data)
+            elif error_type == 'stl':
+                error = _error
 
-        return seasonal, trend, error, state
+            # add error to distribution and evaluate
+            self.td.add(error, 1.0)
+            state = self.error_eval[self.params['error_handling']](error)
+            self.metric_store.write([RedisGeneric(self.tdigest_key, self.td.serialize())])
+
+            return (seasonal, trend, error, state)
+
+        else:
+            return (0.0, 0.0, 0.0, {'flag': -1})
 
     def write(self, state):
-        seasonal, trend, error, state = state
-        self.metric_store.write(RedisGeneric(self.tdigest_key, self.td))
-        # write states
+        (seasonal, trend, error, state) = state
         prefix = '%s.%s' % (self.plugin, self.service)
+        now = int(time())
         for name, value in state.iteritems():
-            metric_name = '%s.%s' % (prefix, name)
-            self.graphite_sink.write(metric_name, value)
-        self.graphite_sink.write('%s.%s' % (prefix, 'seasonal'), seasonal)
-        self.graphite_sink.write('%s.%s' % (prefix, 'trend'), trend)
-        self.graphite_sink.write('%s.%s' % (prefix, 'error'), error)
+            self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, name), now, value))
+
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'seasonal'), now, seasonal))
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'trend'), now, trend))
+        self.sink.write(TimeSeriesTuple('%s.%s' % (prefix, 'error'), now, error))
 
     def run(self):
         data = self.read()
-        if data:
-            state = self.process(data)
-            self.write(state)
-        else:
-            return None
+        state = self.process(data)
+        self.write(state)
+        return True

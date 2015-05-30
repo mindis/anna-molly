@@ -6,8 +6,9 @@ class BaseTask(object):
     """
     """
 
-    def __init__(self, config, resource={}):
+    def __init__(self, config, logger, resource={}):
         self.config = config
+        self.logger = logger
         self.resource = resource
         self._metric_store = None
         self._sink = None
@@ -21,20 +22,19 @@ class BaseTask(object):
     @metric_store.setter
     def metric_store(self, value):
         if value:
-            config = self.config['metric_store']
+            config = self.config['metric_store'][value]
             self._metric_store = getattr(sink, value)(config)
         else:
             self._metric_store = None
 
     @property
-    def sink(self):
+    def graphite_sink(self):
         return self.graphite_sink
 
-    @sink.setter
-    def sink(self, value):
+    @graphite_sink.setter
+    def graphite_sink(self, value):
         if value:
-            config = self.config['graphite_sink']
-            print value
+            config = self.config['graphite_sink'][value]
             self.graphite_sink = getattr(sink, value)(config)
         else:
             self.graphite_sink = None
