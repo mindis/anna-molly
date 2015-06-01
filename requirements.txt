@@ -18,3 +18,4 @@ twitter.common.string==0.3.3
 twitter.common.util==0.3.3
 ujson==1.33
 boltons==0.5.1
+pyuv==1.0.2

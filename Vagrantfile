@@ -1,55 +1,28 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
+$script = <<SCRIPT
 
-#
-# Usage:
-# ~~~~~~
-#
-#   in development:   vagrant up
-#   in stage (ci):    vagrant up --provider=aws
-#
-#   Note: http://docs.vagrantup.com/v2/providers/default.html;
-#         the default provider is virtual box and can only be
-#         set using the environment variable 'VAGRANT_DEFAULT_PROVIDER'
-#
+echo Installing depedencies...
+sudo apt-get update
+sudo apt-get install -y build-essential python-pip python-celery redis-server automake r-base python-dev libtool
+sudo pip install -r /opt/anna-molly/requirements.txt
 
-#
-# Description:
-# ~~~~~~~~~~~~
-#
-#   This is a common Vagrantfile for our development and staging area.
-#   The staging area works exactly like the development area but is using
-#   the "aws" provider instead virtual box.
-#
-#
+SCRIPT
 
-# import statements
-require 'json'
+VAGRANTFILE_API_VERSION = "2"
 
-# Define your service name here!
-service_name          = 'anna-molly'
-fail 'No service name defined' if service_name.empty?
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  config.vm.box = "hashicorp/precise64"
 
-# variables - virtual box specific
-VB_MEMORY             = 1024
-VB_CPUS               = 4
+  config.vm.provision "shell", inline: $script
 
-# set constants
-hostname = "anna-molly"
+  config.vm.define "n1" do |n1|
+      n1.vm.network "private_network", ip: "172.20.20.10"
+  end
 
-# vagrant configuration
-Vagrant.configure('2') do |config|
-  config.vm.box = 'tm-infrastructure-chef-precise64'
-  config.vm.box_url = 'https://cloud-images.ubuntu.com/vagrant/precise/current/precise-server-cloudimg-amd64-vagrant-disk1.box'
-  config.vm.hostname = hostname
-  config.vm.network 'private_network', ip: '192.168.33.10'
   config.vm.synced_folder '.', '/opt/anna-molly'
 
-  # configure the virtualbox provider
-  config.vm.provider :virtualbox do |vb|
-    vb.customize ['modifyvm', :id, '--ioapic', 'on']
-    vb.customize ['modifyvm', :id, '--memory', VB_MEMORY]
-    vb.customize ['modifyvm', :id, '--cpus', VB_CPUS]
-  end
+  config.vm.hostname = "anna-molly"
+
 end

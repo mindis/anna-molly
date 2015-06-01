@@ -10,8 +10,6 @@ from lib.plugins.poll_seasonal_decomposition import PollSeasonalDecomposition
 
 configfile = '/opt/anna-molly/config/analyzer.json'
 CONFIG = config.load(configfile)
-print "Coonfig"
-print CONFIG
 BROKER_URL = "redis://127.0.0.1:6379/0"
 
 CELERYBEAT_SCHEDULE = {
